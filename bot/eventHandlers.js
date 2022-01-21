@@ -63,12 +63,16 @@ bot.on("message", async (context) => {
 				messageOptions.reply_to_message_id = replyMessageId;
 			}
 
-
 			try {
 				const outMessage = await bot.api.sendMessage(user.id, `${sender.displayName}:\n${context.message.text}`, messageOptions);
 				await new MessageMap(context.message.message_id, outMessage.message_id, user.id).create();
 			} catch (error) {
-				console.error("Error sending text message.", error, error.payload);
+				// If a user blocked the bot, they won't receive messages. Delete them from the bot.
+				if (error.description.includes("blocked")) {
+					await user.delete();
+					continue;
+				}
+				console.error("Error sending text message.", error);
 				context.reply("Unable to send this message. Please try again.", {reply_to_message_id: context.message.message_id});
 			}
 		}
@@ -80,20 +84,25 @@ bot.on("message", async (context) => {
 				const replyMessageId = await MessageMap.readByInMessageId(originalMessage.inMessageId, user.id);
 				messageOptions.reply_to_message_id = replyMessageId;
 			}
-			const outMessage1 = await bot.api.sendMessage(user.id, `${sender.displayName}:`, {
-					allow_sending_without_reply: true,
-					entities: [{
-						type: "bold",
-						offset: 0,
-						length: sender.displayName.length
-					}]
-				}
-			);
 			try {
+				const outMessage1 = await bot.api.sendMessage(user.id, `${sender.displayName}:`, {
+						allow_sending_without_reply: true,
+						entities: [{
+							type: "bold",
+							offset: 0,
+							length: sender.displayName.length
+						}]
+					}
+				);
 				await new MessageMap(context.message.message_id, outMessage1.message_id, null).create();
 				const outMessage2 = await bot.api.copyMessage(user.id, context.message.chat.id, context.message.message_id, messageOptions);
 				await new MessageMap(context.message.message_id, outMessage2.message_id, user.id).create();
 			} catch (error) {
+				// If a user blocked the bot, they won't receive messages. Delete them from the bot.
+				if (error.description.includes("blocked")) {
+					await user.delete();
+					continue;
+				}
 				console.error("Error sending media message.", error, error.payload);
 				context.reply("Unable to send this message. Please try again.", {reply_to_message_id: context.message.message_id});
 			}
@@ -140,12 +149,22 @@ bot.on("edited_message:text", async (context) => {
 	for (const user of await User.readAllEnabled()) {
 		if (user.id === context.from.id) continue;
 		const editMessageId = await MessageMap.readByInMessageId(context.editedMessage.message_id, user.id);
-		bot.api.editMessageText(
-			user.id,
-			editMessageId,
-			`${sender.displayName}:\n${context.editedMessage.text}`,
-			messageOptions
-		);
+		try {
+			await bot.api.editMessageText(
+				user.id,
+				editMessageId,
+				`${sender.displayName}:\n${context.editedMessage.text}`,
+				messageOptions
+			);
+		} catch (error) {
+			// If a user blocked the bot, they won't receive messages. Delete them from the bot.
+			if (error.description.includes("blocked")) {
+				await user.delete();
+				continue;
+			}
+			console.error("Error editing text message.", error);
+			context.reply("Unable to edit this message. Please try again.", {reply_to_message_id: context.message.message_id});
+		}
 	}
 });
 
@@ -175,16 +194,26 @@ bot.on("edited_message:media", async (context) => {
 	for (const user of await User.readAllEnabled()) {
 		if (user.id === context.from.id) continue;
 		const editMessageId = await MessageMap.readByInMessageId(context.editedMessage.message_id, user.id);
-		bot.api.editMessageMedia(
-			user.id,
-			editMessageId,
-			{
-				type: mediaType,
-				media: context.editedMessage[mediaType].file_id,
-				caption: context.editedMessage.caption,
-				caption_entities: context.editedMessage.caption_entities
+		try {
+			await bot.api.editMessageMedia(
+				user.id,
+				editMessageId,
+				{
+					type: mediaType,
+					media: context.editedMessage[mediaType].file_id,
+					caption: context.editedMessage.caption,
+					caption_entities: context.editedMessage.caption_entities
+				}
+			);
+		} catch (error) {
+			// If a user blocked the bot, they won't receive messages. Delete them from the bot.
+			if (error.description.includes("blocked")) {
+				await user.delete();
+				continue;
 			}
-		);
+			console.error("Error editing media message.", error);
+			context.reply("Unable to edit this message. Please try again.", {reply_to_message_id: context.message.message_id});
+		}
 	}
 
 });

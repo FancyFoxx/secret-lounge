@@ -211,7 +211,15 @@ bot.command("delete", async (context) => {
 			return;
 		}
 		for (const user of await User.readAllEnabled()) {
-			bot.api.deleteMessage(user.id, await MessageMap.readByInMessageId(originalMessage.inMessageId, user.id));
+			try {
+				await bot.api.deleteMessage(user.id, await MessageMap.readByInMessageId(originalMessage.inMessageId, user.id));
+			} catch (error) {
+				// If a user blocked the bot, they won't receive messages. Delete them from the bot.
+				if (error.description.includes("blocked")) {
+					await user.delete();
+					continue;
+				}
+			}
 		}
 		await MessageMap.deleteByInMessageId(originalMessage.inMessageId);
 		await bot.api.deleteMessage(from.id, context.message.message_id);
