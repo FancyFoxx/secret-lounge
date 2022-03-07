@@ -214,8 +214,8 @@ bot.command("delete", async (context) => {
 			try {
 				await bot.api.deleteMessage(user.id, await MessageMap.readByInMessageId(originalMessage.inMessageId, user.id));
 			} catch (error) {
-				// If a user blocked the bot, they won't receive messages. Delete them from the bot.
-				if (error.description.includes("blocked")) {
+				// If a user blocked the bot or they've deactivated their account, they won't receive messages. Delete them from the bot.
+				if (error.description.includes("blocked") || error.description.includes("deactivated")) {
 					await user.delete();
 					continue;
 				}
