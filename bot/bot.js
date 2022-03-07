@@ -25,8 +25,8 @@ bot.catch(async (error) => {
 	console.error(`Error while handling update ${context.update.update_id}:`);
 	const e = error.error;
 	if (e instanceof GrammyError) {
-		// If a user blocked the bot, they won't receive messages. Delete them from the bot.
-		if (e.description.includes("blocked")) {
+		// If a user blocked the bot or they've deactivated their account, they won't receive messages. Delete them from the bot.
+		if (e.description.includes("blocked") || e.description.includes("deactivated")) {
 			const user = new User({id: e.payload.chat_id});
 			await user.delete();
 		} else {

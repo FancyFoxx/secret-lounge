@@ -67,8 +67,8 @@ bot.on("message", async (context) => {
 				const outMessage = await bot.api.sendMessage(user.id, `${sender.displayName}:\n${context.message.text}`, messageOptions);
 				await new MessageMap(context.message.message_id, outMessage.message_id, user.id).create();
 			} catch (error) {
-				// If a user blocked the bot, they won't receive messages. Delete them from the bot.
-				if (error.description.includes("blocked")) {
+				// If a user blocked the bot or they've deactivated their account, they won't receive messages. Delete them from the bot.
+				if (error.description.includes("blocked") || error.description.includes("deactivated")) {
 					await user.delete();
 					continue;
 				}
@@ -98,8 +98,8 @@ bot.on("message", async (context) => {
 				const outMessage2 = await bot.api.copyMessage(user.id, context.message.chat.id, context.message.message_id, messageOptions);
 				await new MessageMap(context.message.message_id, outMessage2.message_id, user.id).create();
 			} catch (error) {
-				// If a user blocked the bot, they won't receive messages. Delete them from the bot.
-				if (error.description.includes("blocked")) {
+				// If a user blocked the bot or they've deactivated their account, they won't receive messages. Delete them from the bot.
+				if (error.description.includes("blocked") || error.description.includes("deactivated")) {
 					await user.delete();
 					continue;
 				}
@@ -157,8 +157,8 @@ bot.on("edited_message:text", async (context) => {
 				messageOptions
 			);
 		} catch (error) {
-			// If a user blocked the bot, they won't receive messages. Delete them from the bot.
-			if (error.description.includes("blocked")) {
+			// If a user blocked the bot or they've deactivated their account, they won't receive messages. Delete them from the bot.
+			if (error.description.includes("blocked") || error.description.includes("deactivated")) {
 				await user.delete();
 				continue;
 			}
@@ -206,8 +206,8 @@ bot.on("edited_message:media", async (context) => {
 				}
 			);
 		} catch (error) {
-			// If a user blocked the bot, they won't receive messages. Delete them from the bot.
-			if (error.description.includes("blocked")) {
+			// If a user blocked the bot or they've deactivated their account, they won't receive messages. Delete them from the bot.
+			if (error.description.includes("blocked") || error.description.includes("deactivated")) {
 				await user.delete();
 				continue;
 			}
